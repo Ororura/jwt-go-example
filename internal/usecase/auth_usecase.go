@@ -22,7 +22,6 @@ func NewAuthUsecase(r domain.UserRepository, secret string) *AuthUsecase {
 }
 
 func (u *AuthUsecase) Register(username, password string) error {
-	// Хешируем пароль
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return errors.New("failed to hash password: " + err.Error())
@@ -42,7 +41,6 @@ func (u *AuthUsecase) Login(username, password string) (string, error) {
 		return "", errors.New("invalid username or password")
 	}
 
-	// Проверяем пароль через bcrypt
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", errors.New("invalid username or password")
 	}
