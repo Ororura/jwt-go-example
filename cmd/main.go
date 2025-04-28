@@ -23,11 +23,15 @@ func main() {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
 
-	repo := repository.NewUserSQLiteRepository(db)
-	authUC := usecase.NewAuthUsecase(repo, "your-super-secret")
+	userRepo := repository.NewUserSQLiteRepository(db)
+	authUC := usecase.NewAuthUsecase(userRepo, "your-super-secret")
 	authHandler := handler.NewAuthHandler(authUC)
 
-	srv := server.NewServer(authHandler)
+	productRepo := repository.NewProductSQLiteRepository(db)
+	productUC := usecase.NewProductUsecase(productRepo)
+	productHandler := handler.NewProductHandler(productUC)
+
+	srv := server.NewServer(authHandler, productHandler)
 
 	log.Println("Starting server on :8080")
 	if err := srv.ListenAndServe(); err != nil {
