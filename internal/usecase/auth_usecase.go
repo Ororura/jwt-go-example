@@ -5,19 +5,25 @@ import (
 	"jwt-go/internal/domain"
 	"time"
 
+	"sync"
+
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthUsecase struct {
-	repo      domain.UserRepository
-	jwtSecret []byte
+	repo         domain.UserRepository
+	jwtSecret    []byte
+	refreshStore map[string]string // refreshToken → username
+	mu           sync.Mutex
 }
 
 func NewAuthUsecase(r domain.UserRepository, secret string) *AuthUsecase {
 	return &AuthUsecase{
-		repo:      r,
-		jwtSecret: []byte(secret),
+		repo:         r,
+		jwtSecret:    []byte(secret),
+		refreshStore: make(map[string]string),
 	}
 }
 
@@ -35,25 +41,40 @@ func (u *AuthUsecase) Register(username, password string) error {
 	return u.repo.Save(user)
 }
 
-func (u *AuthUsecase) Login(username, password string) (string, error) {
+func (u *AuthUsecase) Login(username, password string) (accessToken string, refreshToken string, err error) {
 	user, err := u.repo.GetByUsername(username)
 	if err != nil {
-		return "", errors.New("invalid username or password")
+		return "", "", errors.New("invalid username or password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", errors.New("invalid username or password")
+		return "", "", errors.New("invalid username or password")
 	}
 
-	claims := jwt.StandardClaims{
-		Subject:   username,
-		ExpiresAt: time.Now().Add(72 * time.Hour).Unix(),
-		IssuedAt:  time.Now().Unix(),
-		Issuer:    "auth-app",
+	accessToken, err = u.generateAccessToken(username)
+	if err != nil {
+		return "", "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(u.jwtSecret)
+	refreshToken = uuid.New().String()
+
+	u.mu.Lock()
+	u.refreshStore[refreshToken] = username
+	u.mu.Unlock()
+
+	return accessToken, refreshToken, nil
+}
+
+func (u *AuthUsecase) RefreshAccessToken(refreshToken string) (string, error) {
+	u.mu.Lock()
+	username, ok := u.refreshStore[refreshToken]
+	u.mu.Unlock()
+
+	if !ok {
+		return "", errors.New("invalid refresh token")
+	}
+
+	return u.generateAccessToken(username)
 }
 
 func (u *AuthUsecase) ValidateToken(tokenString string) (*jwt.StandardClaims, error) {
@@ -71,4 +92,17 @@ func (u *AuthUsecase) ValidateToken(tokenString string) (*jwt.StandardClaims, er
 	}
 
 	return claims, nil
+}
+
+// ✳️ вспомогательная функция
+func (u *AuthUsecase) generateAccessToken(username string) (string, error) {
+	claims := jwt.StandardClaims{
+		Subject:   username,
+		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
+		IssuedAt:  time.Now().Unix(),
+		Issuer:    "auth-app",
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(u.jwtSecret)
 }

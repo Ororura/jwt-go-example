@@ -14,9 +14,14 @@ type Server struct {
 func NewServer(authHandler *handler.AuthHandler, productHandler *handler.ProductHandler) *Server {
 	router := mux.NewRouter()
 
+	router.Use(DisableCORS)
+
 	// Public
-	router.HandleFunc("/register", authHandler.Register).Methods("POST")
-	router.HandleFunc("/login", authHandler.Login).Methods("POST")
+	router.HandleFunc("/register", authHandler.Register).Methods("POST", "OPTIONS")
+	// Явно разрешаем OPTIONS для /login
+	router.HandleFunc("/login", authHandler.Login).Methods("POST", "OPTIONS")
+	router.HandleFunc("/refresh", authHandler.Refresh).Methods("POST")
+	router.HandleFunc("/logout", authHandler.Logout).Methods("POST")
 
 	// Protected
 	productsRouter := router.PathPrefix("/products").Subrouter()

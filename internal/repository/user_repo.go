@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"jwt-go/internal/domain"
 	"errors"
+	"jwt-go/internal/domain"
 
 	"github.com/jmoiron/sqlx"
 )
