@@ -18,7 +18,6 @@ func NewServer(authHandler *handler.AuthHandler, productHandler *handler.Product
 
 	// Public
 	router.HandleFunc("/register", authHandler.Register).Methods("POST", "OPTIONS")
-	// Явно разрешаем OPTIONS для /login
 	router.HandleFunc("/login", authHandler.Login).Methods("POST", "OPTIONS")
 	router.HandleFunc("/refresh", authHandler.Refresh).Methods("POST")
 	router.HandleFunc("/logout", authHandler.Logout).Methods("POST")
@@ -30,7 +29,7 @@ func NewServer(authHandler *handler.AuthHandler, productHandler *handler.Product
 
 	return &Server{
 		httpServer: &http.Server{
-			Addr:    ":8080",
+			Addr:    ":8081",
 			Handler: router,
 		},
 	}

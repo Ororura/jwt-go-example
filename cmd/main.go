@@ -33,7 +33,7 @@ func main() {
 
 	srv := server.NewServer(authHandler, productHandler)
 
-	log.Println("Starting server on :8080")
+	log.Println("Starting server on :8081")
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}

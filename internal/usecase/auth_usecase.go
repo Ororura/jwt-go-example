@@ -15,7 +15,7 @@ import (
 type AuthUsecase struct {
 	repo         domain.UserRepository
 	jwtSecret    []byte
-	refreshStore map[string]string // refreshToken → username
+	refreshStore map[string]string
 	mu           sync.Mutex
 }
 
@@ -94,7 +94,6 @@ func (u *AuthUsecase) ValidateToken(tokenString string) (*jwt.StandardClaims, er
 	return claims, nil
 }
 
-// ✳️ вспомогательная функция
 func (u *AuthUsecase) generateAccessToken(username string) (string, error) {
 	claims := jwt.StandardClaims{
 		Subject:   username,
